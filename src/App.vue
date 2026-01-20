@@ -123,10 +123,6 @@ onBeforeUnmount(() => {
             Weź się za robotę
           </span>
         </h1>
-
-        <p class="sub">
-          Zrób najmniejszy możliwy krok. <span class="hint">Teraz.</span>
-        </p>
       </div>
 
       <div class="foot">
