@@ -27,13 +27,13 @@ function resize() {
   const ctx = c.getContext("2d");
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  const count = Math.floor((w * h) / 18000);
+  const count = Math.floor((w * h) / 22000);
   particles = Array.from({ length: count }, () => ({
     x: rand(0, w),
     y: rand(0, h),
-    vx: rand(-0.25, 0.25),
-    vy: rand(-0.35, 0.35),
-    r: rand(0.6, 1.8),
+    vx: rand(-0.2, 0.2),
+    vy: rand(-0.3, 0.3),
+    r: rand(0.6, 1.6),
     a: rand(0.08, 0.35),
     hue: rand(170, 280),
   }));
@@ -63,7 +63,6 @@ function draw() {
 
   for (let i = 0; i < particles.length; i++) {
     const p = particles[i];
-
     p.x += p.vx;
     p.y += p.vy;
 
@@ -79,22 +78,6 @@ function draw() {
     ctx.fillStyle = `hsla(${p.hue}, 95%, 70%, ${alpha})`;
     ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
     ctx.fill();
-
-    for (let j = i + 1; j < particles.length; j++) {
-      const q = particles[j];
-      const dx = p.x - q.x;
-      const dy = p.y - q.y;
-      const dist = Math.hypot(dx, dy);
-      if (dist < 120) {
-        const a2 = (1 - dist / 120) * 0.1;
-        ctx.strokeStyle = `hsla(${(p.hue + q.hue) / 2}, 95%, 70%, ${a2})`;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y);
-        ctx.lineTo(q.x, q.y);
-        ctx.stroke();
-      }
-    }
   }
 
   rafId = requestAnimationFrame(draw);
@@ -116,26 +99,26 @@ onBeforeUnmount(() => {
   <div class="scene">
     <canvas ref="canvasRef" class="fx" aria-hidden="true"></canvas>
 
-    <div class="content">
-      <div class="panel">
+    <main class="wrap">
+      <section class="panel">
         <h1 class="headline">
           <span class="glitch" data-text="Weź się za robotę">
             Weź się za robotę
           </span>
         </h1>
-      </div>
+      </section>
 
-      <div class="foot">
+      <footer class="foot">
         Powered with <span class="heart">&lt;3</span> by <span class="sig">Owidiusz</span>
-      </div>
-    </div>
+      </footer>
+    </main>
   </div>
 </template>
 
 <style>
 @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&display=swap");
 
-/* reset – usuwa białą ramkę */
+/* globalny reset */
 html, body, #app {
   margin: 0;
   padding: 0;
@@ -150,7 +133,7 @@ html, body, #app {
 .scene {
   position: relative;
   width: 100vw;
-  height: 100vh;
+  height: 100svh;
   display: grid;
   place-items: center;
   background: radial-gradient(circle at 20% 20%, #121a2e, #050610 60%, #000);
@@ -159,35 +142,45 @@ html, body, #app {
 .fx {
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
 }
 
-.content {
+/* centralny wrapper – KLUCZ do dopasowania */
+.wrap {
   position: relative;
   z-index: 2;
-  text-align: center;
-  padding: 32px;
+  width: min(100%, 960px);
+  padding: clamp(16px, 4vw, 48px);
+  display: grid;
+  gap: 20px;
+  align-items: center;
+  justify-items: center;
 }
 
+/* panel */
 .panel {
+  width: 100%;
   padding: clamp(20px, 4vw, 40px);
   border-radius: 22px;
   background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
   border: 1px solid rgba(255,255,255,0.14);
   backdrop-filter: blur(14px);
   box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+  text-align: center;
 }
 
+/* headline */
 .headline {
   margin: 0;
   font-family: "Orbitron", system-ui, sans-serif;
   font-weight: 900;
-  font-size: clamp(36px, 6vw, 88px);
+  line-height: 1.05;
+  font-size: clamp(32px, 6vw, 88px);
   letter-spacing: 0.08em;
 }
 
-/* glitch + neon + typewriter */
+/* glitch + neon */
 .glitch {
   position: relative;
   display: inline-block;
@@ -203,7 +196,7 @@ html, body, #app {
     0 0 14px rgba(124,58,237,0.6),
     0 0 28px rgba(34,197,94,0.35);
   animation:
-    reveal 1.8s steps(18, end) forwards,
+    reveal 1.6s steps(18, end) forwards,
     gradient 3s linear infinite;
 }
 
@@ -233,10 +226,11 @@ html, body, #app {
   50% { opacity: 0; }
 }
 
+/* tekst */
 .sub {
-  margin-top: 18px;
+  margin-top: 16px;
+  font-size: clamp(14px, 2.5vw, 18px);
   color: rgba(255,255,255,0.78);
-  font: 500 18px/1.6 system-ui, sans-serif;
 }
 
 .hint {
@@ -244,10 +238,11 @@ html, body, #app {
   text-shadow: 0 0 12px rgba(6,182,212,0.35);
 }
 
+/* stopka */
 .foot {
-  margin-top: 18px;
-  font: 600 12px system-ui, sans-serif;
+  font-size: 12px;
   color: rgba(255,255,255,0.55);
+  text-align: center;
 }
 
 .heart {
