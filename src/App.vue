@@ -2,8 +2,6 @@
 import { ref, onMounted, onBeforeUnmount } from "vue";
 
 const canvasRef = ref(null);
-
-// ===== TEKST =====
 const TEXT = "example";
 
 function draw() {
@@ -14,6 +12,7 @@ function draw() {
   const w = window.innerWidth;
   const h = window.innerHeight;
 
+  // ===== MAIN CANVAS (hi-dpi) =====
   canvas.width = w * dpr;
   canvas.height = h * dpr;
   canvas.style.width = w + "px";
@@ -30,13 +29,12 @@ function draw() {
   const cols = Math.ceil(w / cell);
   const rows = Math.ceil(h / cell);
 
-  // ===== TEXT MASK =====
+  // ===== MASK (CSS PX, NO DPR!) =====
   const mask = document.createElement("canvas");
-  mask.width = w * dpr;
-  mask.height = h * dpr;
+  mask.width = w;
+  mask.height = h;
 
   const maskCtx = mask.getContext("2d");
-  maskCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   maskCtx.fillStyle = "black";
   maskCtx.fillRect(0, 0, w, h);
@@ -57,26 +55,26 @@ function draw() {
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, w, h);
 
-  // ===== DRAW =====
+  // ===== DRAW GRID =====
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       const x = col * cell + gap / 2;
       const y = row * cell + gap / 2;
 
-      // ⬛ tło
+      // ⬛ ALWAYS DARK BACKGROUND
       ctx.fillStyle = DARK_CELL;
       ctx.fillRect(x, y, size, size);
 
       ctx.strokeStyle = GRID_LINE;
       ctx.strokeRect(x, y, size, size);
 
-      // 🔍 sprawdzamy maskę
-      const sx = Math.floor((col * cell + cell / 2) * dpr);
-      const sy = Math.floor((row * cell + cell / 2) * dpr);
+      // 🔍 sample mask (CSS px!)
+      const sx = Math.floor(col * cell + cell / 2);
+      const sy = Math.floor(row * cell + cell / 2);
 
       const alpha = maskCtx.getImageData(sx, sy, 1, 1).data[3];
 
-      // 🟩 TYLKO LITERY
+      // 🟩 ONLY TEXT
       if (alpha > 128) {
         ctx.fillStyle = GREENS[Math.floor(Math.random() * GREENS.length)];
         ctx.fillRect(x, y, size, size);
