@@ -2,95 +2,121 @@
 import { onMounted, onBeforeUnmount, ref } from "vue";
 
 const canvasRef = ref(null);
-
 let rafId = 0;
-let particles = [];
-let w = 0;
-let h = 0;
-let t = 0;
 
-function rand(min, max) {
-  return Math.random() * (max - min) + min;
-}
+const text = "Weź się za robotę";
 
-function resize() {
+function drawGrid() {
   const c = canvasRef.value;
   if (!c) return;
 
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  w = window.innerWidth;
-  h = window.innerHeight;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
 
+  // ustawienia canvas
   c.width = Math.floor(w * dpr);
   c.height = Math.floor(h * dpr);
+  c.style.width = `${w}px`;
+  c.style.height = `${h}px`;
 
   const ctx = c.getContext("2d");
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  const count = Math.floor((w * h) / 22000);
-  particles = Array.from({ length: count }, () => ({
-    x: rand(0, w),
-    y: rand(0, h),
-    vx: rand(-0.2, 0.2),
-    vy: rand(-0.3, 0.3),
-    r: rand(0.6, 1.6),
-    a: rand(0.08, 0.35),
-    hue: rand(170, 280),
-  }));
-}
+  // dobierz rozmiar pojedynczego "pola" (mały kwadracik)
+  const baseCell = Math.max(6, Math.min(14, Math.floor(Math.min(w, h) / 60)));
+  const cell = baseCell;
+  const cols = Math.ceil(w / cell);
+  const rows = Math.ceil(h / cell);
+  const gap = Math.max(1, Math.floor(cell * 0.12));
+  const boxSize = cell - gap;
 
-function draw() {
-  const c = canvasRef.value;
-  if (!c) return;
-  const ctx = c.getContext("2d");
+  // offscreen canvas: renderujemy tekst i próbkowujemy jego piksele
+  const oc = document.createElement("canvas");
+  oc.width = c.width;
+  oc.height = c.height;
+  const ocCtx = oc.getContext("2d");
+  ocCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  t += 0.016;
-  ctx.clearRect(0, 0, w, h);
+  // tle offscreen i tekst w bieli
+  ocCtx.clearRect(0, 0, w, h);
+  ocCtx.fillStyle = "black";
+  ocCtx.fillRect(0, 0, w, h);
 
-  const grd = ctx.createRadialGradient(
-    w * 0.3,
-    h * 0.35,
-    10,
-    w * 0.3,
-    h * 0.35,
-    Math.max(w, h)
-  );
-  grd.addColorStop(0, "rgba(124,58,237,0.18)");
-  grd.addColorStop(0.5, "rgba(34,197,94,0.06)");
-  grd.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = grd;
+  // dopasuj wielkość fontu do ekranu
+  const fontSize = Math.floor(Math.min(w, h) * 0.18);
+  ocCtx.fillStyle = "white";
+  ocCtx.textAlign = "center";
+  ocCtx.textBaseline = "middle";
+  ocCtx.font = `700 ${fontSize}px "Orbitron", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial`;
+  ocCtx.fillText(text, w / 2, h / 2);
+
+  // tło główne
+  ctx.fillStyle = "#02030a";
   ctx.fillRect(0, 0, w, h);
 
-  for (let i = 0; i < particles.length; i++) {
-    const p = particles[i];
-    p.x += p.vx;
-    p.y += p.vy;
+  // opcjonalny miękki gradient tła po lewej (dla klimatu)
+  const g = ctx.createRadialGradient(w * 0.25, h * 0.35, 10, w * 0.25, h * 0.35, Math.max(w, h));
+  g.addColorStop(0, "rgba(28,37,57,0.18)");
+  g.addColorStop(0.6, "rgba(6,12,23,0.05)");
+  g.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
 
-    if (p.x < -20) p.x = w + 20;
-    if (p.x > w + 20) p.x = -20;
-    if (p.y < -20) p.y = h + 20;
-    if (p.y > h + 20) p.y = -20;
+  // rysuj siatkę; próbkuj środek każdego pola z offscreen canvas
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const x = col * cell + gap / 2;
+      const y = row * cell + gap / 2;
 
-    const twinkle = 0.08 * Math.sin(t * 2 + i);
-    const alpha = Math.max(0.05, Math.min(0.5, p.a + twinkle));
+      // pozycja do sample'owania (w pixelach kanwy) — używamy środków pól
+      const sampleX = Math.floor((col * cell + cell / 2) * dpr);
+      const sampleY = Math.floor((row * cell + cell / 2) * dpr);
 
-    ctx.beginPath();
-    ctx.fillStyle = `hsla(${p.hue}, 95%, 70%, ${alpha})`;
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-    ctx.fill();
+      // domyślny kolor pola (ciemne)
+      ctx.fillStyle = "#071021";
+      ctx.fillRect(x, y, boxSize, boxSize);
+
+      // sprawdź alfa piksela z tekstu
+      let isFilled = false;
+      try {
+        const pixel = ocCtx.getImageData(sampleX, sampleY, 1, 1).data;
+        // jeśli biały (lub półprzezroczysty), traktuj jako część znaku
+        if (pixel[3] > 110) {
+          isFilled = true;
+        } else if (pixel[0] + pixel[1] + pixel[2] > 200) {
+          isFilled = true;
+        }
+      } catch (e) {
+        // w rzadkich przypadkach getImageData może rzucić; ignorujemy wtedy
+        isFilled = false;
+      }
+
+      if (isFilled) {
+        // wypełniony zielony kwadrat — styl podobny do "contribution" GitHub
+        ctx.fillStyle = "#16a34a";
+        ctx.fillRect(x, y, boxSize, boxSize);
+
+        // lekki blask/gradient dla lepszego efektu
+        ctx.fillStyle = "rgba(255,255,255,0.03)";
+        ctx.fillRect(x, y, boxSize, boxSize * 0.18);
+      }
+    }
   }
+}
 
-  rafId = requestAnimationFrame(draw);
+function onResize() {
+  // przerysuj po zmianie rozmiaru
+  drawGrid();
 }
 
 onMounted(() => {
-  resize();
-  window.addEventListener("resize", resize);
-  rafId = requestAnimationFrame(draw);
+  drawGrid();
+  window.addEventListener("resize", onResize);
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener("resize", resize);
+  window.removeEventListener("resize", onResize);
   cancelAnimationFrame(rafId);
 });
 </script>
@@ -101,10 +127,10 @@ onBeforeUnmount(() => {
 
     <main class="wrap">
       <section class="panel">
-        <h1 class="headline">
-          <span class="glitch" data-text="Weź się za robotę">
-            Weź się za robotę
-          </span>
+        <!-- Tekst zostaje w DOM dla dostępności, ale jest ukryty wizualnie.
+             Graficzną reprezentację tworzy canvas powyżej. -->
+        <h1 class="headline sr-only">
+          <span class="glitch" data-text="Weź się za robotę">Weź się za robotę</span>
         </h1>
       </section>
 
@@ -127,6 +153,19 @@ html, body, #app {
   background: #000;
   overflow: hidden;
 }
+
+/* accessibility helper: visually hide but keep for screen readers */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
 </style>
 
 <style scoped>
@@ -134,128 +173,65 @@ html, body, #app {
   position: relative;
   width: 100vw;
   height: 100svh;
-  display: grid;
-  place-items: center;
-  background: radial-gradient(circle at 20% 20%, #121a2e, #050610 60%, #000);
+  display: block;
+  background: #000;
 }
 
+/* canvas zajmuje cały widok i jest tłem typu "siatka" */
 .fx {
   position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
+  display: block;
+  z-index: 0;
 }
 
-/* centralny wrapper – KLUCZ do dopasowania */
+/* centralny wrapper – elementy interfejsu na wierzchu */
 .wrap {
   position: relative;
   z-index: 2;
   width: min(100%, 960px);
-  padding: clamp(16px, 4vw, 48px);
+  padding: clamp(12px, 3.5vw, 36px);
   display: grid;
-  gap: 20px;
+  gap: 12px;
   align-items: center;
   justify-items: center;
 }
 
-/* panel */
+/* panel - półprzezroczysty kontener nad kanwą */
 .panel {
   width: 100%;
-  padding: clamp(20px, 4vw, 40px);
-  border-radius: 22px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
-  border: 1px solid rgba(255,255,255,0.14);
-  backdrop-filter: blur(14px);
-  box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+  padding: clamp(12px, 3vw, 28px);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.6);
   text-align: center;
-}
-
-/* headline */
-.headline {
-  margin: 0;
-  font-family: "Orbitron", system-ui, sans-serif;
-  font-weight: 900;
-  line-height: 1.05;
-  font-size: clamp(32px, 6vw, 88px);
-  letter-spacing: 0.08em;
-}
-
-/* glitch + neon */
-.glitch {
-  position: relative;
-  display: inline-block;
-  white-space: nowrap;
-  overflow: hidden;
-  width: 0;
-  color: transparent;
-  background: linear-gradient(90deg, #7c3aed, #22c55e, #06b6d4, #7c3aed);
-  background-size: 300% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  text-shadow:
-    0 0 14px rgba(124,58,237,0.6),
-    0 0 28px rgba(34,197,94,0.35);
-  animation:
-    reveal 1.6s steps(18, end) forwards,
-    gradient 3s linear infinite;
-}
-
-.glitch::after {
-  content: "";
-  position: absolute;
-  right: -6px;
-  top: 10%;
-  width: 3px;
-  height: 80%;
-  background: linear-gradient(180deg, #22c55e, #06b6d4, #7c3aed);
-  box-shadow:
-    0 0 12px rgba(34,197,94,0.9),
-    0 0 22px rgba(124,58,237,0.7);
-  animation: caret 0.9s steps(1) infinite;
-}
-
-@keyframes reveal {
-  to { width: 100%; }
-}
-
-@keyframes gradient {
-  to { background-position: 100% 50%; }
-}
-
-@keyframes caret {
-  50% { opacity: 0; }
-}
-
-/* tekst */
-.sub {
-  margin-top: 16px;
-  font-size: clamp(14px, 2.5vw, 18px);
-  color: rgba(255,255,255,0.78);
-}
-
-.hint {
-  color: #fff;
-  text-shadow: 0 0 12px rgba(6,182,212,0.35);
 }
 
 /* stopka */
 .foot {
   font-size: 12px;
-  color: rgba(255,255,255,0.55);
+  color: rgba(255,255,255,0.75);
   text-align: center;
+  z-index: 3;
+  display: block;
 }
 
 .heart {
   color: #ff5a78;
-  text-shadow: 0 0 14px rgba(255,90,120,0.5);
+  text-shadow: 0 0 8px rgba(255,90,120,0.4);
   animation: beat 1.1s ease-in-out infinite;
 }
 
 .sig {
-  color: rgba(255,255,255,0.85);
+  color: rgba(255,255,255,0.92);
+  font-weight: 600;
 }
 
 @keyframes beat {
-  50% { transform: scale(1.15); }
+  50% { transform: scale(1.12); }
 }
 </style>
