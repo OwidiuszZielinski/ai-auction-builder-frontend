@@ -168,4 +168,11 @@ html, body, #app {
 }
 
 .sig {
-  color: rgba(255,
+  color: rgba(255,255,255,0.9);
+  font-weight: 600;
+}
+
+@keyframes beat {
+  50% { transform: scale(1.12); }
+}
+</style>
