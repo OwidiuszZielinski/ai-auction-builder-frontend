@@ -2,17 +2,17 @@
 import { ref, onMounted, onBeforeUnmount } from "vue";
 
 const canvasRef = ref(null);
-const TEXT = "example";
+const TEXT = "HELLO";
 
 function draw() {
   const canvas = canvasRef.value;
   if (!canvas) return;
 
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = window.innerWidth;
   const h = window.innerHeight;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-  // ===== MAIN CANVAS (hi-dpi) =====
+  // ===== MAIN CANVAS =====
   canvas.width = w * dpr;
   canvas.height = h * dpr;
   canvas.style.width = w + "px";
@@ -29,22 +29,21 @@ function draw() {
   const cols = Math.ceil(w / cell);
   const rows = Math.ceil(h / cell);
 
-  // ===== MASK (CSS PX, NO DPR!) =====
+  // ===== MASK (COLOR-BASED!) =====
   const mask = document.createElement("canvas");
   mask.width = w;
   mask.height = h;
 
-  const maskCtx = mask.getContext("2d");
-
-  maskCtx.fillStyle = "black";
-  maskCtx.fillRect(0, 0, w, h);
+  const mctx = mask.getContext("2d");
+  mctx.fillStyle = "black";
+  mctx.fillRect(0, 0, w, h);
 
   const fontSize = Math.floor(Math.min(w, h) * 0.25);
-  maskCtx.fillStyle = "white";
-  maskCtx.font = `900 ${fontSize}px system-ui, -apple-system, Segoe UI, Roboto`;
-  maskCtx.textAlign = "center";
-  maskCtx.textBaseline = "middle";
-  maskCtx.fillText(TEXT, w / 2, h / 2);
+  mctx.fillStyle = "white";
+  mctx.font = `900 ${fontSize}px system-ui, -apple-system, Segoe UI, Roboto`;
+  mctx.textAlign = "center";
+  mctx.textBaseline = "middle";
+  mctx.fillText(TEXT, w / 2, h / 2);
 
   // ===== COLORS =====
   const DARK_CELL = "#0d1117";
@@ -55,27 +54,28 @@ function draw() {
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, w, h);
 
-  // ===== DRAW GRID =====
+  // ===== DRAW =====
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       const x = col * cell + gap / 2;
       const y = row * cell + gap / 2;
 
-      // ⬛ ALWAYS DARK BACKGROUND
+      // ⬛ DARK BACKGROUND
       ctx.fillStyle = DARK_CELL;
       ctx.fillRect(x, y, size, size);
 
       ctx.strokeStyle = GRID_LINE;
       ctx.strokeRect(x, y, size, size);
 
-      // 🔍 sample mask (CSS px!)
+      // 🔍 SAMPLE MASK COLOR
       const sx = Math.floor(col * cell + cell / 2);
       const sy = Math.floor(row * cell + cell / 2);
 
-      const alpha = maskCtx.getImageData(sx, sy, 1, 1).data[3];
+      const data = mctx.getImageData(sx, sy, 1, 1).data;
+      const r = data[0];
 
-      // 🟩 ONLY TEXT
-      if (alpha > 128) {
+      // 🟩 ONLY WHITE TEXT PIXELS
+      if (r > 200) {
         ctx.fillStyle = GREENS[Math.floor(Math.random() * GREENS.length)];
         ctx.fillRect(x, y, size, size);
       }
