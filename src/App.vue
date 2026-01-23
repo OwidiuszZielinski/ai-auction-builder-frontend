@@ -101,23 +101,27 @@ const grid = computed(() => {
   const textHeight = 7; // wysokość czcionki
   
   // Oblicz środkową pozycję tekstu
-  const startX = Math.floor((cols.value - textWidth) / 2);
+  let startX = Math.floor((cols.value - textWidth) / 2);
   const startY = Math.floor((rows.value - textHeight) / 2);
+  
+  // Zabezpieczenie przed ujemnymi wartościami
+  if (startY < 0 || startY >= rows.value) return cells;
   
   chars.split("").forEach((ch, charIndex) => {
     const glyph = FONT[ch] || FONT[" "];
 
     for (let y = 0; y < 7; y++) {
+      const gridY = startY + y;
+      if (gridY < 0 || gridY >= rows.value) continue;
+      
       for (let x = 0; x < 5; x++) {
         if (glyph[y][x] === "1") {
-          const wave =
-            (Math.sin((tick.value + charIndex * 4 + y) / 3) + 1) / 2;
+          const wave = (Math.sin((tick.value + charIndex * 4 + y) / 3) + 1) / 2;
           const level = 1 + Math.floor(wave * (MAX_LEVEL - 1));
 
           const gridX = startX + x;
-          const gridY = startY + y;
           
-          if (gridX >= 0 && gridX < cols.value && gridY >= 0 && gridY < rows.value) {
+          if (gridX >= 0 && gridX < cols.value) {
             const index = gridY * cols.value + gridX;
             cells[index] = level;
           }
@@ -143,18 +147,20 @@ const cellClass = (v) => ({
 html, body {
   margin: 0;
   background: #0d1117;
-  overflow: hidden; /* Zmienione z hidden-x na hidden */
+  overflow: hidden;
 }
 
 .app {
-  min-height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   gap: 24px;
-  padding: 20px;
-  position: relative;
   z-index: 2;
 }
 
@@ -167,6 +173,7 @@ html, body {
   font-size: 15px;
   position: relative;
   z-index: 3;
+  width: 300px;
 }
 
 .grid {
@@ -176,7 +183,7 @@ html, body {
   width: 100vw;
   height: 100vh;
   display: grid;
-  grid-gap: 4px;
+  gap: 4px;
   padding: 4px;
   box-sizing: border-box;
   z-index: 1;
@@ -185,6 +192,8 @@ html, body {
 .cell {
   background: #161b22;
   border-radius: 3px;
+  width: 100%;
+  height: 100%;
 }
 
 .cell.l1 { background: #0e4429; }
