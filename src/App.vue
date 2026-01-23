@@ -3,11 +3,13 @@
     <input
       v-model="text"
       class="input"
-      placeholder="TYPE HERE"
-      maxlength="30"
+      placeholder="WPISZ TEKST"
     />
 
-    <div class="grid">
+    <div
+      class="grid"
+      :style="{ gridTemplateColumns: `repeat(${cols}, ${CELL}px)` }"
+    >
       <div
         v-for="(cell, i) in grid"
         :key="i"
@@ -21,14 +23,17 @@
 <script setup>
 import { computed, ref } from "vue";
 
+/* ===== CONFIG ===== */
 const ROWS = 7;
-const COLS = 60;
+const CELL = 12;
+const GAP = 4;
+const CHAR_WIDTH = 6; // 5px + 1 odstęp
+const MIN_COLS = 90;
 
-const text = ref("TEST");
+/* ===== STATE ===== */
+const text = ref("WEZ SIE ZA ROBOTE");
 
-/**
- * FULL 5x7 FONT (A–Z, 0–9, space)
- */
+/* ===== FONT 5x7 ===== */
 const FONT = {
   A:["01110","10001","10001","11111","10001","10001","10001"],
   B:["11110","10001","10001","11110","10001","10001","11110"],
@@ -69,28 +74,33 @@ const FONT = {
   " ":["00000","00000","00000","00000","00000","00000","00000"],
 };
 
+/* ===== GRID WIDTH ===== */
+const cols = computed(() => {
+  const needed = text.value.length * CHAR_WIDTH;
+  return Math.max(MIN_COLS, needed);
+});
+
+/* ===== RENDER ===== */
 const grid = computed(() => {
   const matrix = Array.from({ length: ROWS }, () =>
-    Array(COLS).fill(false)
+    Array(cols.value).fill(false)
   );
 
   const chars = text.value.toUpperCase();
-  const textWidth = chars.length * 6 - 1;
-  const startX = Math.max(0, Math.floor((COLS - textWidth) / 2));
-
-  let xOffset = startX;
+  const textWidth = chars.length * CHAR_WIDTH - 1;
+  let xOffset = Math.floor((cols.value - textWidth) / 2);
 
   for (const ch of chars) {
     const glyph = FONT[ch] || FONT[" "];
 
     for (let y = 0; y < ROWS; y++) {
       for (let x = 0; x < 5; x++) {
-        if (glyph[y][x] === "1" && xOffset + x < COLS) {
+        if (glyph[y][x] === "1" && xOffset + x >= 0) {
           matrix[y][xOffset + x] = true;
         }
       }
     }
-    xOffset += 6;
+    xOffset += CHAR_WIDTH;
   }
 
   return matrix.flat();
@@ -109,23 +119,22 @@ html, body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 24px;
+  gap: 28px;
 }
 
 .input {
   background: #161b22;
   border: 1px solid #30363d;
   color: #c9d1d9;
-  padding: 10px 14px;
+  padding: 12px 16px;
   font-size: 16px;
-  border-radius: 8px;
+  border-radius: 10px;
   outline: none;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(60, 12px);
-  grid-template-rows: repeat(7, 12px);
+  grid-auto-rows: 12px;
   gap: 4px;
 }
 
