@@ -4,7 +4,10 @@
 
     <div
       class="grid"
-      :style="{ gridTemplateColumns: `repeat(${cols}, ${CELL}px)` }"
+      :style="{
+        gridTemplateColumns: `repeat(${cols}, ${CELL}px)`,
+        gridTemplateRows: `repeat(${rows}, ${CELL}px)`
+      }"
     >
       <div
         v-for="(cell, i) in grid"
@@ -20,7 +23,6 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 
 /* ===== CONFIG ===== */
-const ROWS = 7;
 const CELL = 12;
 const GAP = 4;
 const CHAR_WIDTH = 6;
@@ -29,18 +31,22 @@ const MAX_LEVEL = 4;
 /* ===== STATE ===== */
 const text = ref("WEZ SIE ZA ROBOTE");
 const viewportWidth = ref(window.innerWidth);
+const viewportHeight = ref(window.innerHeight);
 const tick = ref(0);
 
 /* ===== RESIZE + ANIMATION ===== */
-const updateWidth = () => (viewportWidth.value = window.innerWidth);
+const updateViewport = () => {
+  viewportWidth.value = window.innerWidth;
+  viewportHeight.value = window.innerHeight;
+};
 
 onMounted(() => {
-  window.addEventListener("resize", updateWidth);
+  window.addEventListener("resize", updateViewport);
   setInterval(() => tick.value++, 120);
 });
 
 onUnmounted(() => {
-  window.removeEventListener("resize", updateWidth);
+  window.removeEventListener("resize", updateViewport);
 });
 
 /* ===== FULL 5x7 FONT (A–Z + space) ===== */
@@ -74,43 +80,54 @@ const FONT = {
   " ":["00000","00000","00000","00000","00000","00000","00000"],
 };
 
-/* ===== COLS (FULL WIDTH) ===== */
+/* ===== COLS & ROWS (FULL VIEWPORT) ===== */
 const cols = computed(() => {
   const unit = CELL + GAP;
   return Math.floor((viewportWidth.value + GAP) / unit);
 });
 
+const rows = computed(() => {
+  const unit = CELL + GAP;
+  return Math.floor((viewportHeight.value + GAP) / unit);
+});
+
 /* ===== GRID ===== */
 const grid = computed(() => {
-  const matrix = Array.from({ length: ROWS }, () =>
-    Array(cols.value).fill(0)
-  );
+  const totalCells = cols.value * rows.value;
+  const cells = Array(totalCells).fill(0);
 
   const chars = text.value.toUpperCase();
   const textWidth = chars.length * CHAR_WIDTH - 1;
-  let xOffset = Math.floor((cols.value - textWidth) / 2);
-
+  const textHeight = 7; // wysokość czcionki
+  
+  // Oblicz środkową pozycję tekstu
+  const startX = Math.floor((cols.value - textWidth) / 2);
+  const startY = Math.floor((rows.value - textHeight) / 2);
+  
   chars.split("").forEach((ch, charIndex) => {
     const glyph = FONT[ch] || FONT[" "];
 
-    for (let y = 0; y < ROWS; y++) {
+    for (let y = 0; y < 7; y++) {
       for (let x = 0; x < 5; x++) {
         if (glyph[y][x] === "1") {
           const wave =
             (Math.sin((tick.value + charIndex * 4 + y) / 3) + 1) / 2;
           const level = 1 + Math.floor(wave * (MAX_LEVEL - 1));
 
-          const gx = xOffset + x;
-          if (gx >= 0 && gx < cols.value) {
-            matrix[y][gx] = level;
+          const gridX = startX + x;
+          const gridY = startY + y;
+          
+          if (gridX >= 0 && gridX < cols.value && gridY >= 0 && gridY < rows.value) {
+            const index = gridY * cols.value + gridX;
+            cells[index] = level;
           }
         }
       }
     }
-    xOffset += CHAR_WIDTH;
+    startX += CHAR_WIDTH;
   });
 
-  return matrix.flat();
+  return cells;
 });
 
 /* ===== COLORS ===== */
@@ -126,7 +143,7 @@ const cellClass = (v) => ({
 html, body {
   margin: 0;
   background: #0d1117;
-  overflow-x: hidden;
+  overflow: hidden; /* Zmienione z hidden-x na hidden */
 }
 
 .app {
@@ -136,6 +153,9 @@ html, body {
   justify-content: center;
   align-items: center;
   gap: 24px;
+  padding: 20px;
+  position: relative;
+  z-index: 2;
 }
 
 .input {
@@ -145,18 +165,24 @@ html, body {
   padding: 10px 16px;
   border-radius: 10px;
   font-size: 15px;
+  position: relative;
+  z-index: 3;
 }
 
 .grid {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100vw;
+  height: 100vh;
   display: grid;
-  grid-auto-rows: 12px;
-  gap: 4px;
+  grid-gap: 4px;
+  padding: 4px;
+  box-sizing: border-box;
+  z-index: 1;
 }
 
 .cell {
-  width: 12px;
-  height: 12px;
   background: #161b22;
   border-radius: 3px;
 }
