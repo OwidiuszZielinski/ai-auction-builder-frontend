@@ -2,7 +2,7 @@
 import { ref, onMounted, onBeforeUnmount } from "vue";
 
 const canvasRef = ref(null);
-const TEXT = "HELLO";
+const TEXT = "Wez sie za robote";
 
 function draw() {
   const canvas = canvasRef.value;
