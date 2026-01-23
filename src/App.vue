@@ -14,78 +14,87 @@
         v-for="(cell, i) in grid"
         :key="i"
         class="cell"
-        :class="{ active: cell }"
+        :class="cellClass(cell)"
       />
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, onMounted, onUnmounted } from "vue";
 
 /* ===== CONFIG ===== */
 const ROWS = 7;
 const CELL = 12;
 const GAP = 4;
-const CHAR_WIDTH = 6; // 5px + 1 odstęp
-const MIN_COLS = 90;
+const CHAR_WIDTH = 6;
 
-/* ===== STATE ===== */
 const text = ref("WEZ SIE ZA ROBOTE");
+const screenWidth = ref(window.innerWidth);
+
+/* ===== RESIZE ===== */
+const onResize = () => {
+  screenWidth.value = window.innerWidth;
+};
+
+onMounted(() => {
+  window.addEventListener("resize", onResize);
+  startFlicker();
+});
+onUnmounted(() => window.removeEventListener("resize", onResize));
 
 /* ===== FONT 5x7 ===== */
 const FONT = {
-  A:["01110","10001","10001","11111","10001","10001","10001"],
-  B:["11110","10001","10001","11110","10001","10001","11110"],
-  C:["01111","10000","10000","10000","10000","10000","01111"],
-  D:["11110","10001","10001","10001","10001","10001","11110"],
-  E:["11111","10000","10000","11110","10000","10000","11111"],
-  F:["11111","10000","10000","11110","10000","10000","10000"],
-  G:["01111","10000","10000","10111","10001","10001","01111"],
-  H:["10001","10001","10001","11111","10001","10001","10001"],
-  I:["11111","00100","00100","00100","00100","00100","11111"],
-  J:["00111","00010","00010","00010","10010","10010","01100"],
-  K:["10001","10010","10100","11000","10100","10010","10001"],
-  L:["10000","10000","10000","10000","10000","10000","11111"],
-  M:["10001","11011","10101","10101","10001","10001","10001"],
-  N:["10001","11001","10101","10011","10001","10001","10001"],
-  O:["01110","10001","10001","10001","10001","10001","01110"],
-  P:["11110","10001","10001","11110","10000","10000","10000"],
-  Q:["01110","10001","10001","10001","10101","10010","01101"],
-  R:["11110","10001","10001","11110","10100","10010","10001"],
-  S:["01111","10000","10000","01110","00001","00001","11110"],
-  T:["11111","00100","00100","00100","00100","00100","00100"],
-  U:["10001","10001","10001","10001","10001","10001","01110"],
-  V:["10001","10001","10001","10001","10001","01010","00100"],
   W:["10001","10001","10001","10101","10101","10101","01010"],
-  X:["10001","10001","01010","00100","01010","10001","10001"],
-  Y:["10001","10001","01010","00100","00100","00100","00100"],
+  E:["11111","10000","10000","11110","10000","10000","11111"],
   Z:["11111","00001","00010","00100","01000","10000","11111"],
-  "0":["01110","10001","10011","10101","11001","10001","01110"],
-  "1":["00100","01100","00100","00100","00100","00100","01110"],
-  "2":["01110","10001","00001","00010","00100","01000","11111"],
-  "3":["11110","00001","00001","01110","00001","00001","11110"],
-  "4":["00010","00110","01010","10010","11111","00010","00010"],
-  "5":["11111","10000","10000","11110","00001","00001","11110"],
-  "6":["01110","10000","10000","11110","10001","10001","01110"],
-  "7":["11111","00001","00010","00100","01000","01000","01000"],
-  "8":["01110","10001","10001","01110","10001","10001","01110"],
-  "9":["01110","10001","10001","01111","00001","00001","01110"],
+  S:["01111","10000","10000","01110","00001","00001","11110"],
+  I:["11111","00100","00100","00100","00100","00100","11111"],
+  A:["01110","10001","10001","11111","10001","10001","10001"],
+  R:["11110","10001","10001","11110","10100","10010","10001"],
+  O:["01110","10001","10001","10001","10001","10001","01110"],
+  B:["11110","10001","10001","11110","10001","10001","11110"],
+  T:["11111","00100","00100","00100","00100","00100","00100"],
   " ":["00000","00000","00000","00000","00000","00000","00000"],
 };
 
-/* ===== GRID WIDTH ===== */
+/* ===== GRID WIDTH (FULL SCREEN) ===== */
 const cols = computed(() => {
-  const needed = text.value.length * CHAR_WIDTH;
-  return Math.max(MIN_COLS, needed);
+  const perCell = CELL + GAP;
+  return Math.floor(screenWidth.value / perCell);
 });
+
+/* ===== FLICKER MAP ===== */
+const flicker = ref([]);
+
+const startFlicker = () => {
+  flicker.value = Array.from({ length: ROWS * cols.value }, () =>
+    Math.random() < 0.08 ? randomLevel() : 0
+  );
+
+  setInterval(() => {
+    flicker.value = flicker.value.map(() =>
+      Math.random() < 0.03 ? randomLevel() : 0
+    );
+  }, 700);
+};
+
+const randomLevel = () => Math.floor(Math.random() * 4) + 1;
 
 /* ===== RENDER ===== */
 const grid = computed(() => {
   const matrix = Array.from({ length: ROWS }, () =>
-    Array(cols.value).fill(false)
+    Array(cols.value).fill(0)
   );
 
+  // background flicker
+  flicker.value.forEach((v, i) => {
+    const y = Math.floor(i / cols.value);
+    const x = i % cols.value;
+    if (matrix[y]) matrix[y][x] = v;
+  });
+
+  // text
   const chars = text.value.toUpperCase();
   const textWidth = chars.length * CHAR_WIDTH - 1;
   let xOffset = Math.floor((cols.value - textWidth) / 2);
@@ -95,8 +104,8 @@ const grid = computed(() => {
 
     for (let y = 0; y < ROWS; y++) {
       for (let x = 0; x < 5; x++) {
-        if (glyph[y][x] === "1" && xOffset + x >= 0) {
-          matrix[y][xOffset + x] = true;
+        if (glyph[y][x] === "1") {
+          matrix[y][xOffset + x] = 4; // max intensity
         }
       }
     }
@@ -105,6 +114,16 @@ const grid = computed(() => {
 
   return matrix.flat();
 });
+
+/* ===== COLORS ===== */
+const cellClass = (level) => {
+  return {
+    "l1": level === 1,
+    "l2": level === 2,
+    "l3": level === 3,
+    "l4": level === 4,
+  };
+};
 </script>
 
 <style>
@@ -126,7 +145,7 @@ html, body {
   background: #161b22;
   border: 1px solid #30363d;
   color: #c9d1d9;
-  padding: 12px 16px;
+  padding: 12px 18px;
   font-size: 16px;
   border-radius: 10px;
   outline: none;
@@ -136,6 +155,8 @@ html, body {
   display: grid;
   grid-auto-rows: 12px;
   gap: 4px;
+  width: 100vw;
+  justify-content: center;
 }
 
 .cell {
@@ -145,7 +166,9 @@ html, body {
   border-radius: 3px;
 }
 
-.cell.active {
-  background: #2ea043;
-}
+/* GitHub-like greens */
+.cell.l1 { background: #0e4429; }
+.cell.l2 { background: #006d32; }
+.cell.l3 { background: #26a641; }
+.cell.l4 { background: #39d353; }
 </style>
