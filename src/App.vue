@@ -4,111 +4,91 @@ import { ref, onMounted, onBeforeUnmount } from "vue";
 const canvasRef = ref(null);
 const TEXT = "WEZ SIE ZA ROBOTE";
 
-let frame = 0;
-let rafId;
+// ===== RETRO FONT (5x7, grubość x2) =====
+const FONT = {
+  W: ["10101","10101","10101","10101","10101","10101","01010"],
+  E: ["11111","10000","11110","10000","10000","10000","11111"],
+  Z: ["11111","00001","00010","00100","01000","10000","11111"],
+  S: ["01111","10000","10000","01110","00001","00001","11110"],
+  I: ["111","010","010","010","010","010","111"],
+  A: ["01110","10001","10001","11111","10001","10001","10001"],
+  R: ["11110","10001","10001","11110","10100","10010","10001"],
+  O: ["01110","10001","10001","10001","10001","10001","01110"],
+  B: ["11110","10001","10001","11110","10001","10001","11110"],
+  T: ["11111","00100","00100","00100","00100","00100","00100"],
+  " ": ["000","000","000","000","000","000","000"]
+};
+
+let ctx, w, h;
+let flicker = 0.9;
+let flickerTimer;
 
 function draw() {
-  const canvas = canvasRef.value;
-  if (!canvas) return;
-
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-  canvas.width = w * dpr;
-  canvas.height = h * dpr;
-  canvas.style.width = w + "px";
-  canvas.style.height = h + "px";
-
-  const ctx = canvas.getContext("2d");
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-  // ===== GRID =====
-  const cell = Math.max(12, Math.floor(Math.min(w, h) / 60));
-  const gap = 2;
-  const size = cell - gap;
-
-  const cols = Math.ceil(w / cell);
-  const rows = Math.ceil(h / cell);
-
-  // ===== BITMAP TEXT MASK =====
-  const scale = 4; // kluczowe – im mniejsze, tym wyraźniejszy napis
-  const textCanvas = document.createElement("canvas");
-  const tctx = textCanvas.getContext("2d");
-
-  const textW = Math.floor(cols / 2);
-  const textH = rows;
-
-  textCanvas.width = textW;
-  textCanvas.height = textH;
-
-  tctx.fillStyle = "black";
-  tctx.fillRect(0, 0, textW, textH);
-
-  const fontSize = Math.floor(textH * 0.45);
-  tctx.fillStyle = "white";
-  tctx.font = `900 ${fontSize}px monospace`;
-  tctx.textAlign = "center";
-  tctx.textBaseline = "middle";
-  tctx.fillText(TEXT, textW / 2, textH / 2);
-
-  // ===== COLORS =====
-  const DARK_CELL = "#0d1117";
-  const GRID_LINE = "#161b22";
-  const GREENS = ["#0e4429", "#006d32", "#26a641", "#39d353"];
-
-  // ===== BACKGROUND =====
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, w, h);
 
-  // ===== TYPEWRITER PROGRESS =====
-  const maxCols = Math.floor(frame / 2);
+  const cell = 14;
+  const gap = 2;
+  const size = cell - gap;
 
-  // ===== DRAW =====
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      const x = col * cell + gap / 2;
-      const y = row * cell + gap / 2;
+  const startX = Math.floor((w - TEXT.length * 8 * cell) / 2);
+  const startY = Math.floor(h / 2 - 7 * cell / 2);
 
-      // background cell
-      ctx.fillStyle = DARK_CELL;
+  // GRID BACKGROUND
+  for (let y = 0; y < h; y += cell) {
+    for (let x = 0; x < w; x += cell) {
+      ctx.fillStyle = "#0d1117";
       ctx.fillRect(x, y, size, size);
-      ctx.strokeStyle = GRID_LINE;
-      ctx.strokeRect(x, y, size, size);
-
-      // === TEXT MAP: 2 CELLS WIDE ===
-      const sx = Math.floor(col / 2);
-      const sy = row;
-
-      if (sx < textW && sy < textH && col < maxCols) {
-        const pixel = tctx.getImageData(sx, sy, 1, 1).data[0];
-
-        // pixel ON + random burnout
-        if (pixel > 200 && Math.random() > 0.08) {
-          ctx.fillStyle =
-            GREENS[Math.floor(Math.random() * GREENS.length)];
-          ctx.fillRect(x, y, size, size);
-        }
-      }
     }
   }
 
-  // ===== CRT FLICKER =====
-  ctx.fillStyle = "rgba(0,0,0,0.05)";
-  ctx.fillRect(0, 0, w, h);
+  // DRAW TEXT
+  let cursorX = startX;
 
-  frame++;
-  rafId = requestAnimationFrame(draw);
+  for (const char of TEXT) {
+    const glyph = FONT[char] || FONT[" "];
+
+    glyph.forEach((row, y) => {
+      [...row].forEach((bit, x) => {
+        if (bit === "1" && Math.random() < flicker) {
+          // 2 kratki szerokości
+          ctx.fillStyle = "#26a641";
+          ctx.fillRect(
+            cursorX + x * cell * 2,
+            startY + y * cell,
+            size * 2,
+            size
+          );
+        }
+      });
+    });
+
+    cursorX += cell * 8;
+  }
+}
+
+// ===== SLOW FLICKER =====
+function startFlicker() {
+  flickerTimer = setInterval(() => {
+    flicker = 0.85 + Math.random() * 0.15;
+    draw();
+  }, 500);
 }
 
 onMounted(() => {
+  const canvas = canvasRef.value;
+  w = window.innerWidth;
+  h = window.innerHeight;
+  canvas.width = w;
+  canvas.height = h;
+  ctx = canvas.getContext("2d");
+
   draw();
-  window.addEventListener("resize", draw);
+  startFlicker();
 });
 
 onBeforeUnmount(() => {
-  cancelAnimationFrame(rafId);
-  window.removeEventListener("resize", draw);
+  clearInterval(flickerTimer);
 });
 </script>
 
@@ -117,15 +97,13 @@ onBeforeUnmount(() => {
 </template>
 
 <style>
-html,
-body {
+html, body {
   margin: 0;
   width: 100%;
   height: 100%;
   background: black;
   overflow: hidden;
 }
-
 canvas {
   display: block;
 }
