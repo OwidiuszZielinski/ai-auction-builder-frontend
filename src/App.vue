@@ -29,21 +29,26 @@ function draw() {
   const cols = Math.ceil(w / cell);
   const rows = Math.ceil(h / cell);
 
-  // ===== MASK (COLOR-BASED!) =====
-  const mask = document.createElement("canvas");
-  mask.width = w;
-  mask.height = h;
+  // ===== BITMAP TEXT MASK (RETRO) =====
+  const textScale = 6;
+  const textCanvas = document.createElement("canvas");
+  const tctx = textCanvas.getContext("2d");
 
-  const mctx = mask.getContext("2d");
-  mctx.fillStyle = "black";
-  mctx.fillRect(0, 0, w, h);
+  const textW = Math.floor(w / textScale);
+  const textH = Math.floor(h / textScale);
 
-  const fontSize = Math.floor(Math.min(w, h) * 0.25);
-  mctx.fillStyle = "white";
-  mctx.font = `900 ${fontSize}px system-ui, -apple-system, Segoe UI, Roboto`;
-  mctx.textAlign = "center";
-  mctx.textBaseline = "middle";
-  mctx.fillText(TEXT, w / 2, h / 2);
+  textCanvas.width = textW;
+  textCanvas.height = textH;
+
+  tctx.fillStyle = "black";
+  tctx.fillRect(0, 0, textW, textH);
+
+  const fontSize = Math.floor(textH * 0.5);
+  tctx.fillStyle = "white";
+  tctx.font = `900 ${fontSize}px monospace`;
+  tctx.textAlign = "center";
+  tctx.textBaseline = "middle";
+  tctx.fillText(TEXT, textW / 2, textH / 2);
 
   // ===== COLORS =====
   const DARK_CELL = "#0d1117";
@@ -54,30 +59,29 @@ function draw() {
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, w, h);
 
-  // ===== DRAW =====
+  // ===== DRAW GRID + TEXT =====
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       const x = col * cell + gap / 2;
       const y = row * cell + gap / 2;
 
-      // ⬛ DARK BACKGROUND
+      // dark cell
       ctx.fillStyle = DARK_CELL;
       ctx.fillRect(x, y, size, size);
-
       ctx.strokeStyle = GRID_LINE;
       ctx.strokeRect(x, y, size, size);
 
-      // 🔍 SAMPLE MASK COLOR
-      const sx = Math.floor(col * cell + cell / 2);
-      const sy = Math.floor(row * cell + cell / 2);
+      // === MAP TEXT: 2 CELLS WIDE ===
+      const sx = Math.floor(col / 2);
+      const sy = Math.floor(row);
 
-      const data = mctx.getImageData(sx, sy, 1, 1).data;
-      const r = data[0];
-
-      // 🟩 ONLY WHITE TEXT PIXELS
-      if (r > 200) {
-        ctx.fillStyle = GREENS[Math.floor(Math.random() * GREENS.length)];
-        ctx.fillRect(x, y, size, size);
+      if (sx < textW && sy < textH) {
+        const data = tctx.getImageData(sx, sy, 1, 1).data;
+        if (data[0] > 200) {
+          ctx.fillStyle =
+            GREENS[Math.floor(Math.random() * GREENS.length)];
+          ctx.fillRect(x, y, size, size);
+        }
       }
     }
   }
