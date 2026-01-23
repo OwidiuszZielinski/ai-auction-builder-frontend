@@ -23,6 +23,7 @@
           v-model="text" 
           class="input" 
           placeholder="Wpisz tekst..."
+          @keydown.enter="blurInput"
         />
         <div class="footer-text">
           Powered with <span class="heart">❤️</span> By Owidiusz
@@ -33,11 +34,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 
 /* ===== CONFIG ===== */
-const CELL = 12;
-const GAP = 4;
+const CELL = ref(12);
+const GAP = ref(4);
 const CHAR_WIDTH = 6;
 const MAX_LEVEL = 4;
 
@@ -47,18 +48,40 @@ const viewportWidth = ref(window.innerWidth);
 const viewportHeight = ref(window.innerHeight);
 const tick = ref(0);
 const heartBeat = ref(0);
+const isMobile = ref(false);
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+const checkMobile = () => {
+  isMobile.value = window.innerWidth <= 768;
+  
+  // Adjust grid size for mobile
+  if (isMobile.value) {
+    CELL.value = 8;
+    GAP.value = 2;
+  } else {
+    CELL.value = 12;
+    GAP.value = 4;
+  }
+};
 
 /* ===== RESIZE + ANIMATION ===== */
 const updateViewport = () => {
   viewportWidth.value = window.innerWidth;
   viewportHeight.value = window.innerHeight;
+  checkMobile();
+};
+
+const blurInput = (e) => {
+  e.target.blur();
 };
 
 onMounted(() => {
+  checkMobile();
   window.addEventListener("resize", updateViewport);
   
-  // Main animation tick
-  setInterval(() => tick.value++, 120);
+  // Main animation tick (slower on mobile for performance)
+  const animationInterval = isMobile.value ? 150 : 120;
+  setInterval(() => tick.value++, animationInterval);
   
   // Heartbeat animation
   setInterval(() => {
@@ -103,13 +126,13 @@ const FONT = {
 
 /* ===== COLS & ROWS (FULL VIEWPORT) ===== */
 const cols = computed(() => {
-  const unit = CELL + GAP;
-  return Math.floor((viewportWidth.value + GAP) / unit);
+  const unit = CELL.value + GAP.value;
+  return Math.max(1, Math.floor((viewportWidth.value + GAP.value) / unit));
 });
 
 const rows = computed(() => {
-  const unit = CELL + GAP;
-  return Math.floor((viewportHeight.value + GAP) / unit);
+  const unit = CELL.value + GAP.value;
+  return Math.max(1, Math.floor((viewportHeight.value + GAP.value) / unit));
 });
 
 /* ===== GRID ===== */
@@ -117,15 +140,18 @@ const grid = computed(() => {
   const totalCells = cols.value * rows.value;
   const cells = Array(totalCells).fill(0);
 
+  if (!text.value.trim()) return cells;
+
   const chars = text.value.toUpperCase();
   const textWidth = chars.length * CHAR_WIDTH - 1;
-  const textHeight = 7; // wysokość czcionki
+  const textHeight = 7;
   
-  // Oblicz środkową pozycję tekstu (nieco wyżej, żeby zostawić miejsce na stopkę)
+  // Adjust vertical position for mobile (higher up to avoid keyboard)
+  const verticalOffset = isMobile.value ? -20 : -10;
   let startX = Math.floor((cols.value - textWidth) / 2);
-  const startY = Math.floor((rows.value - textHeight) / 2) - 10; // Podnieś tekst trochę wyżej
+  const startY = Math.floor((rows.value - textHeight) / 2) + verticalOffset;
   
-  // Zabezpieczenie przed ujemnymi wartościami
+  // Don't render if text would be out of bounds
   if (startY < 0 || startY >= rows.value) return cells;
   
   chars.split("").forEach((ch, charIndex) => {
@@ -137,7 +163,9 @@ const grid = computed(() => {
       
       for (let x = 0; x < 5; x++) {
         if (glyph[y][x] === "1") {
-          const wave = (Math.sin((tick.value + charIndex * 4 + y) / 3) + 1) / 2;
+          // Smoother wave effect on mobile
+          const waveSpeed = isMobile.value ? 4 : 3;
+          const wave = (Math.sin((tick.value + charIndex * 4 + y) / waveSpeed) + 1) / 2;
           const level = 1 + Math.floor(wave * (MAX_LEVEL - 1));
 
           const gridX = startX + x;
@@ -162,6 +190,11 @@ const cellClass = (v) => ({
   l3: v === 3,
   l4: v === 4,
 });
+
+// Watch for mobile changes to adjust grid
+watch(isMobile, () => {
+  updateViewport();
+});
 </script>
 
 <style>
@@ -171,6 +204,9 @@ html, body {
   background: #0d1117;
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .app {
@@ -195,21 +231,23 @@ html, body {
 
 /* Footer at the bottom */
 .footer {
-  background: rgba(13, 17, 23, 0.9);
+  background: rgba(13, 17, 23, 0.95);
   border-top: 1px solid #30363d;
-  padding: 20px;
+  padding: 15px 10px;
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 10;
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  flex-shrink: 0;
 }
 
 .input-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 15px;
+  gap: 12px;
   max-width: 600px;
   width: 100%;
 }
@@ -218,12 +256,14 @@ html, body {
   background: #161b22;
   border: 1px solid #30363d;
   color: #c9d1d9;
-  padding: 12px 20px;
+  padding: 12px 16px;
   border-radius: 12px;
   font-size: 16px;
   width: 100%;
   max-width: 400px;
   transition: all 0.3s ease;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .input:focus {
@@ -242,6 +282,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
+  text-align: center;
 }
 
 .heart {
@@ -286,4 +327,88 @@ html, body {
 .cell.l2 { background: #006d32; }
 .cell.l3 { background: #26a641; }
 .cell.l4 { background: #39d353; }
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .grid {
+    gap: 2px;
+    padding: 2px;
+  }
+  
+  .cell {
+    border-radius: 2px;
+  }
+  
+  .footer {
+    padding: 12px 8px;
+  }
+  
+  .input {
+    padding: 10px 14px;
+    font-size: 16px;
+    border-radius: 10px;
+  }
+  
+  .input-container {
+    gap: 10px;
+  }
+  
+  .footer-text {
+    font-size: 13px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .heart {
+    font-size: 1.2em;
+  }
+}
+
+/* Prevent zoom on input focus on mobile */
+@media (max-width: 768px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 360px) {
+  .footer {
+    padding: 10px 6px;
+  }
+  
+  .input {
+    padding: 8px 12px;
+    font-size: 15px;
+  }
+  
+  .footer-text {
+    font-size: 12px;
+  }
+}
+
+/* Landscape orientation */
+@media (max-height: 500px) and (orientation: landscape) {
+  .footer {
+    padding: 8px;
+    flex-direction: row;
+  }
+  
+  .input-container {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .input {
+    max-width: 200px;
+    margin-bottom: 0;
+  }
+  
+  .footer-text {
+    margin-bottom: 0;
+    white-space: nowrap;
+  }
+}
 </style>
