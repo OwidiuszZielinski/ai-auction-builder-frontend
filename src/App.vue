@@ -1,9 +1,11 @@
 <template>
   <div class="app">
+    <!-- Confetti -->
     <div class="confetti" v-if="isWinner">
-      <span v-for="n in 30" :key="n"></span>
+      <span v-for="n in 30" :key="n" :style="confettiStyle(n)"></span>
     </div>
 
+    <!-- Card -->
     <div class="glass-card" :class="{ win: isWinner }">
       <h1>🎮 Wakacyjny Quiz</h1>
 
@@ -64,12 +66,27 @@ export default {
   methods: {
     copyCode() {
       navigator.clipboard.writeText("FBKD-9HKR-KTA9");
+    },
+    confettiStyle() {
+      return {
+        left: Math.random() * 100 + "%",
+        background: `hsl(${Math.random() * 360}, 80%, 60%)`,
+        animationDelay: Math.random() * 2 + "s",
+        animationDuration: 2 + Math.random() * 2 + "s"
+      };
     }
   }
 };
 </script>
 
 <style>
+/* ===== GLOBAL FIX ===== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 /* ===== Background ===== */
 .app {
   min-height: 100vh;
@@ -78,8 +95,8 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, Inter, Arial, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Inter, Arial, sans-serif;
   color: #f8fafc;
   overflow: hidden;
 }
@@ -88,7 +105,7 @@ export default {
 .glass-card {
   width: 100%;
   max-width: 420px;
-  padding: 28px;
+  padding: 24px;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(18px);
@@ -104,6 +121,7 @@ export default {
   transform: scale(1.02);
 }
 
+/* ===== Title ===== */
 h1 {
   text-align: center;
   margin-bottom: 22px;
@@ -113,6 +131,7 @@ h1 {
 
 /* ===== Inputs ===== */
 .field {
+  width: 100%;
   margin-bottom: 18px;
 }
 
@@ -125,12 +144,13 @@ label {
 
 input {
   width: 100%;
+  max-width: 100%;
   margin-top: 6px;
   padding: 14px 16px;
   border-radius: 14px;
   border: none;
   outline: none;
-  background: rgba(2, 6, 23, 0.9);
+  background: rgba(2, 6, 23, 0.95);
   color: #f9fafb;
   font-size: 16px;
   font-weight: 500;
@@ -171,7 +191,6 @@ input:focus {
   font-weight: 700;
   font-size: 17px;
   cursor: pointer;
-  background: #020617;
 }
 
 .code-box span {
@@ -190,16 +209,12 @@ input:focus {
 
 .confetti span {
   position: absolute;
+  top: -20px;
   width: 8px;
   height: 14px;
-  background: hsl(calc(360 * var(--i)), 80%, 60%);
-  top: -20px;
-  left: calc(100% * var(--i));
-  animation: fall 3s linear infinite;
-}
-
-.confetti span:nth-child(n) {
-  --i: calc(random() * 1);
+  animation-name: fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
 
 @keyframes fall {
@@ -224,10 +239,14 @@ input:focus {
   }
 }
 
-/* ===== Mobile ===== */
-@media (max-width: 480px) {
-  h1 {
-    font-size: 20px;
+/* ===== Mobile tweaks ===== */
+@media (max-width: 360px) {
+  .glass-card {
+    padding: 20px;
+  }
+
+  input {
+    padding: 12px 14px;
   }
 }
 </style>
