@@ -1,6 +1,10 @@
 <template>
   <div class="app">
-    <div class="glass-card">
+    <div class="confetti" v-if="isWinner">
+      <span v-for="n in 30" :key="n"></span>
+    </div>
+
+    <div class="glass-card" :class="{ win: isWinner }">
       <h1>🎮 Wakacyjny Quiz</h1>
 
       <div class="field">
@@ -8,7 +12,7 @@
         <input
           v-model="destination"
           type="text"
-          placeholder="Wpisz miejsce..."
+          placeholder="np. Hiszpania..."
         />
       </div>
 
@@ -17,13 +21,13 @@
         <input
           v-model="bmw"
           type="text"
-          placeholder="Wpisz model..."
+          placeholder="np. M3..."
         />
       </div>
 
-      <transition name="fade">
+      <transition name="pop">
         <div v-if="isWinner" class="winner">
-          <h2>🎉 Gratulacje!</h2>
+          <div class="banner">🎉 GRATULACJE 🎉</div>
           <p>Wygrałeś gift kartę PS Store</p>
 
           <div class="code-box">
@@ -32,7 +36,7 @@
               :value="giftCode"
               @click="copyCode"
             />
-            <span class="hint">Kliknij aby skopiować</span>
+            <span>Kliknij aby skopiować</span>
           </div>
         </div>
       </transition>
@@ -67,105 +71,153 @@ export default {
 </script>
 
 <style>
-/* Background */
+/* ===== Background ===== */
 .app {
   min-height: 100vh;
-  background: radial-gradient(circle at top, #1f2933, #0b0f14);
+  background:
+    radial-gradient(circle at top, #1e293b, #020617);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Inter", sans-serif;
-  color: #fff;
+  font-family: "Inter", system-ui, sans-serif;
+  padding: 16px;
+  overflow: hidden;
 }
 
-/* Glass card */
+/* ===== Glass Card ===== */
 .glass-card {
-  width: 420px;
-  padding: 32px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  width: 100%;
+  max-width: 420px;
+  padding: 28px;
+  border-radius: 22px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.04)
+  );
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+  transition: box-shadow 0.4s, transform 0.4s;
+}
+
+.glass-card.win {
+  box-shadow:
+    0 0 40px rgba(0, 153, 255, 0.6),
+    0 0 80px rgba(0, 153, 255, 0.3);
+  transform: scale(1.02);
 }
 
 h1 {
   text-align: center;
-  margin-bottom: 24px;
-  font-weight: 600;
+  margin-bottom: 22px;
+  font-weight: 700;
 }
 
-/* Inputs */
+/* ===== Inputs ===== */
 .field {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 label {
-  display: block;
   font-size: 13px;
-  margin-bottom: 6px;
   opacity: 0.85;
 }
 
 input {
   width: 100%;
-  padding: 12px 14px;
-  border-radius: 12px;
+  margin-top: 6px;
+  padding: 14px;
+  border-radius: 14px;
   border: none;
   outline: none;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.45);
   color: #fff;
   font-size: 15px;
-  transition: box-shadow 0.2s, background 0.2s;
-}
-
-input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
 }
 
 input:focus {
-  background: rgba(0, 0, 0, 0.55);
-  box-shadow: 0 0 0 2px rgba(0, 153, 255, 0.4);
+  box-shadow: 0 0 0 2px #38bdf8;
 }
 
-/* Winner section */
+/* ===== Winner ===== */
 .winner {
-  margin-top: 30px;
+  margin-top: 24px;
   text-align: center;
 }
 
-.winner h2 {
-  margin-bottom: 6px;
+.banner {
+  background: linear-gradient(90deg, #38bdf8, #6366f1);
+  padding: 10px;
+  border-radius: 14px;
+  font-weight: 700;
+  margin-bottom: 12px;
 }
 
-.winner p {
-  opacity: 0.85;
-  margin-bottom: 16px;
-}
-
-/* Code box */
 .code-box input {
+  margin-top: 10px;
   cursor: pointer;
   text-align: center;
   letter-spacing: 2px;
   font-weight: 600;
 }
 
-.hint {
-  display: block;
-  margin-top: 6px;
+.code-box span {
   font-size: 12px;
   opacity: 0.6;
 }
 
-/* Animation */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.4s ease, transform 0.4s ease;
+/* ===== Confetti ===== */
+.confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
-.fade-enter-from {
-  opacity: 0;
-  transform: translateY(10px);
+.confetti span {
+  position: absolute;
+  width: 8px;
+  height: 14px;
+  background: hsl(var(--hue), 80%, 60%);
+  top: -20px;
+  left: calc(100% * var(--x));
+  animation: fall 3s linear infinite;
+}
+
+.confetti span:nth-child(n) {
+  --x: calc(random() * 1);
+}
+
+.confetti span {
+  --hue: calc(360 * random());
+}
+
+@keyframes fall {
+  to {
+    transform: translateY(110vh) rotate(360deg);
+  }
+}
+
+/* ===== Animation ===== */
+.pop-enter-active {
+  animation: pop 0.5s ease;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ===== Mobile tweaks ===== */
+@media (max-width: 480px) {
+  h1 {
+    font-size: 20px;
+  }
 }
 </style>
