@@ -12,7 +12,7 @@
         <input
           v-model="destination"
           type="text"
-          placeholder="np. Hiszpania..."
+          placeholder="Wpisz miejsce"
         />
       </div>
 
@@ -21,7 +21,7 @@
         <input
           v-model="bmw"
           type="text"
-          placeholder="np. M3..."
+          placeholder="Wpisz model"
         />
       </div>
 
@@ -33,7 +33,7 @@
           <div class="code-box">
             <input
               readonly
-              :value="giftCode"
+              value="FBKD-9HKR-KTA9"
               @click="copyCode"
             />
             <span>Kliknij aby skopiować</span>
@@ -50,8 +50,7 @@ export default {
   data() {
     return {
       destination: "",
-      bmw: "",
-      giftCode: "TUTAJ_WPROWADZ_SWÓJ_KOD"
+      bmw: ""
     };
   },
   computed: {
@@ -64,7 +63,7 @@ export default {
   },
   methods: {
     copyCode() {
-      navigator.clipboard.writeText(this.giftCode);
+      navigator.clipboard.writeText("FBKD-9HKR-KTA9");
     }
   }
 };
@@ -74,13 +73,14 @@ export default {
 /* ===== Background ===== */
 .app {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top, #1e293b, #020617);
+  background: radial-gradient(circle at top, #0f172a, #020617);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Inter", system-ui, sans-serif;
   padding: 16px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Inter, Arial, sans-serif;
+  color: #f8fafc;
   overflow: hidden;
 }
 
@@ -90,28 +90,25 @@ export default {
   max-width: 420px;
   padding: 28px;
   border-radius: 22px;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.12),
-    rgba(255, 255, 255, 0.04)
-  );
-  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(18px);
   border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
-  transition: box-shadow 0.4s, transform 0.4s;
+  transition: all 0.4s ease;
 }
 
 .glass-card.win {
   box-shadow:
-    0 0 40px rgba(0, 153, 255, 0.6),
-    0 0 80px rgba(0, 153, 255, 0.3);
+    0 0 40px rgba(56, 189, 248, 0.6),
+    0 0 90px rgba(99, 102, 241, 0.4);
   transform: scale(1.02);
 }
 
 h1 {
   text-align: center;
   margin-bottom: 22px;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: 0.5px;
 }
 
 /* ===== Inputs ===== */
@@ -120,20 +117,27 @@ h1 {
 }
 
 label {
-  font-size: 13px;
-  opacity: 0.85;
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #e5e7eb;
 }
 
 input {
   width: 100%;
   margin-top: 6px;
-  padding: 14px;
+  padding: 14px 16px;
   border-radius: 14px;
   border: none;
   outline: none;
-  background: rgba(0, 0, 0, 0.45);
-  color: #fff;
-  font-size: 15px;
+  background: rgba(2, 6, 23, 0.9);
+  color: #f9fafb;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+input::placeholder {
+  color: #9ca3af;
 }
 
 input:focus {
@@ -142,29 +146,39 @@ input:focus {
 
 /* ===== Winner ===== */
 .winner {
-  margin-top: 24px;
+  margin-top: 26px;
   text-align: center;
 }
 
 .banner {
   background: linear-gradient(90deg, #38bdf8, #6366f1);
-  padding: 10px;
+  padding: 12px;
   border-radius: 14px;
-  font-weight: 700;
-  margin-bottom: 12px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
 }
 
+.winner p {
+  color: #e5e7eb;
+}
+
+/* ===== Code ===== */
 .code-box input {
-  margin-top: 10px;
-  cursor: pointer;
+  margin-top: 12px;
   text-align: center;
-  letter-spacing: 2px;
-  font-weight: 600;
+  letter-spacing: 3px;
+  font-weight: 700;
+  font-size: 17px;
+  cursor: pointer;
+  background: #020617;
 }
 
 .code-box span {
+  display: block;
+  margin-top: 6px;
   font-size: 12px;
-  opacity: 0.6;
+  color: #9ca3af;
 }
 
 /* ===== Confetti ===== */
@@ -178,18 +192,14 @@ input:focus {
   position: absolute;
   width: 8px;
   height: 14px;
-  background: hsl(var(--hue), 80%, 60%);
+  background: hsl(calc(360 * var(--i)), 80%, 60%);
   top: -20px;
-  left: calc(100% * var(--x));
+  left: calc(100% * var(--i));
   animation: fall 3s linear infinite;
 }
 
 .confetti span:nth-child(n) {
-  --x: calc(random() * 1);
-}
-
-.confetti span {
-  --hue: calc(360 * random());
+  --i: calc(random() * 1);
 }
 
 @keyframes fall {
@@ -200,21 +210,21 @@ input:focus {
 
 /* ===== Animation ===== */
 .pop-enter-active {
-  animation: pop 0.5s ease;
+  animation: pop 0.45s ease;
 }
 
 @keyframes pop {
-  0% {
-    transform: scale(0.8);
+  from {
+    transform: scale(0.85);
     opacity: 0;
   }
-  100% {
+  to {
     transform: scale(1);
     opacity: 1;
   }
 }
 
-/* ===== Mobile tweaks ===== */
+/* ===== Mobile ===== */
 @media (max-width: 480px) {
   h1 {
     font-size: 20px;
